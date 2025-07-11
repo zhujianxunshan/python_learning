@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能书籍推荐系统</title>
+    <script src="https://cdn.tailwindcss.com/3.3.3"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .book-card {
+            transition: all 0.3s ease;
+        }
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .selected {
+            box-shadow: 0 0 0 3px #4f46e5;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 70, 229, 0.4);
+        }
+        .book-cover {
+            aspect-ratio: 2/3;
+            object-fit: cover;
+        }
+        .like-btn {
+            transition: all 0.2s ease;
+        }
+        .like-btn:hover {
+            transform: scale(1.1);
+        }
+        .like-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="text-xl font-bold text-indigo-600">
+                <i class="fas fa-book-open mr-2"></i>智能书荐
+            </div>
+            <div class="hidden md:flex space-x-6">
+                <a href="#random" class="text-gray-600 hover:text-indigo-600 transition-colors">随机推荐</a>
+                <a href="#select" class="text-gray-600 hover:text-indigo-600 transition-colors">选择推荐</a>
+            </div>
+            <div class="hidden md:flex items-center space-x-4">
+                <!-- 用户登录状态 -->
+                <div id="userSection" class="hidden">
+                    <span class="text-gray-600">欢迎，<span id="username" class="font-medium text-indigo-600"></span></span>
+                    <button id="logoutBtn" class="ml-2 text-gray-600 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-sign-out-alt mr-1"></i>登出
+                    </button>
+                </div>
+                <!-- 登录按钮 -->
+                <div id="loginSection">
+                    <a href="/register.html" class="text-indigo-600 hover:text-indigo-800 transition-colors font-medium">
+                        <i class="fas fa-sign-in-alt mr-1"></i>登录/注册
+                    </a>
+                </div>
+            </div>
+            <button class="md:hidden text-gray-600 focus:outline-none" id="mobileMenuButton">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+        <!-- 移动端菜单 -->
+        <div class="md:hidden hidden bg-white py-2 px-4 shadow-md" id="mobileMenu">
+            <a href="#random" class="block py-2 text-gray-600 hover:text-indigo-600 transition-colors">
+                <i class="fas fa-random mr-2"></i>随机推荐
+            </a>
+            <a href="#select" class="block py-2 text-gray-600 hover:text-indigo-600 transition-colors">
+                <i class="fas fa-mouse-pointer mr-2"></i>选择推荐
+            </a>
+            <hr class="my-2">
+            <!-- 移动端用户状态 -->
+            <div id="mobileUserSection" class="hidden">
+                <div class="py-2 text-gray-600">
+                    欢迎，<span id="mobileUsername" class="font-medium text-indigo-600"></span>
+                </div>
+                <button id="mobileLogoutBtn" class="w-full text-left py-2 text-gray-600 hover:text-indigo-600 transition-colors">
+                    <i class="fas fa-sign-out-alt mr-2"></i>登出
+                </button>
+            </div>
+            <div id="mobileLoginSection">
+                <a href="/register.html" class="block py-2 text-indigo-600 hover:text-indigo-800 transition-colors font-medium">
+                    <i class="fas fa-sign-in-alt mr-2"></i>登录/注册
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- 用户画像卡片 -->
+        <section id="userProfileSection" class="mb-8 hidden">
+            <div class="bg-white rounded-xl shadow p-6 flex flex-col md:flex-row items-center gap-6">
+                <div class="flex-1">
+                    <div class="text-lg font-bold text-indigo-700 mb-2 flex items-center">
+                        <i class="fas fa-user-circle mr-2"></i>
+                        <span id="profileUsername">用户名</span>
+                    </div>
+                    <div class="text-gray-600 mb-1">爱好种类：</div>
+                    <div id="profileFavCategories" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+        </section>
+        <!-- 为你推荐部分 -->
+        <section class="mb-16">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">为你推荐</h2>
+                <p class="text-gray-600">基于你的兴趣画像个性化推荐</p>
+            </div>
+            <div class="flex justify-center mb-8">
+                <button id="profileRecommendBtn" class="btn-primary text-white px-6 py-3 rounded-full font-medium">
+                    <i class="fas fa-user-astronaut mr-2"></i>为我推荐
+                </button>
+            </div>
+            <div id="profileRecommendResult" class="max-w-4xl mx-auto hidden fade-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-6 text-center">为你精选：</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="profileRecommendedBooks"></div>
+            </div>
+        </section>
+        <!-- 随机推荐部分 -->
+        <section id="random" class="mb-16">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">随机书籍推荐</h2>
+                <p class="text-gray-600">点击按钮获取随机书籍推荐</p>
+            </div>
+            
+            <div class="flex justify-center mb-8">
+                <button id="randomBtn" class="btn-primary text-white px-6 py-3 rounded-full font-medium">
+                    <i class="fas fa-random mr-2"></i>随机推荐
+                </button>
+            </div>
+            
+            <div id="randomResult" class="max-w-2xl mx-auto bg-white rounded-xl shadow-md overflow-hidden hidden fade-in">
+                <div class="md:flex">
+                    <div class="md:w-1/3 p-4 flex items-center justify-center">
+                        <img id="randomCover" src="/static/covers/36104107.jpg" alt="书籍封面" class="w-full h-auto rounded-lg shadow book-cover">
+                    </div>
+                    <div class="md:w-2/3 p-6">
+                        <h3 id="randomTitle" class="text-2xl font-bold text-gray-800 mb-2"></h3>
+                        <p id="randomAuthor" class="text-gray-600 mb-4"></p>
+                        <div class="flex flex-wrap gap-2 mb-4" id="randomCategories"></div>
+                        <p id="randomDescription" class="text-gray-700"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 选择推荐部分 -->
+        <section id="select" class="mb-16">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">基于选择的推荐</h2>
+                <p class="text-gray-600">选择两本书籍，我们将为您推荐可能喜欢的书籍</p>
+            </div>
+            
+            <div class="mb-8 text-center">
+                <div class="inline-flex items-center bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <span id="selectionStatus">已选择 0/2 本书</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8" id="bookGrid">
+                <!-- 书籍列表将通过JS动态生成 -->
+            </div>
+            
+            <div class="flex justify-center mb-8">
+                <button id="recommendBtn" class="btn-primary text-white px-6 py-3 rounded-full font-medium opacity-50 cursor-not-allowed" disabled>
+                    <i class="fas fa-magic mr-2"></i>生成推荐
+                </button>
+            </div>
+            
+            <div id="recommendResult" class="max-w-4xl mx-auto hidden fade-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-6 text-center">根据您的选择，我们推荐：</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="recommendedBooks">
+                    <!-- 推荐结果将通过JS动态生成 -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-100 py-8">
+        <div class="container mx-auto px-4 text-center text-gray-600">
+        </div>
+    </footer>
+
+    <!-- 增加书籍弹窗 -->
+    <div id="addBookModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md relative">
+        <button id="closeAddBook" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
+        <h3 class="text-xl font-bold mb-4">增加书籍</h3>
+        <form id="addBookForm" class="space-y-3">
+          <input required name="title" class="w-full border rounded px-3 py-2" placeholder="书名">
+          <input required name="author" class="w-full border rounded px-3 py-2" placeholder="作者">
+          <input name="categories" class="w-full border rounded px-3 py-2" placeholder="类别（可用逗号、竖线、空格分隔）">
+          <div class="flex items-center gap-2">
+            <input name="cover" id="coverInput" class="flex-1 border rounded px-3 py-2" placeholder="封面图片链接">
+            <input type="file" id="coverFile" accept="image/*" class="border rounded px-2 py-1">
+          </div>
+          <div id="coverPreview" class="mb-2"></div>
+          <textarea name="description" class="w-full border rounded px-3 py-2" placeholder="简介"></textarea>
+          <button type="submit" class="btn-primary text-white px-4 py-2 rounded w-full">提交</button>
+        </form>
+      </div>
+    </div>
+
+    <button id="showAddBook" class="fixed bottom-8 right-8 bg-indigo-600 text-white rounded-full shadow-lg p-4 text-2xl z-40 btn-primary flex flex-col items-center" title="增加一本你喜欢的书籍">
+      <i class="fas fa-plus"></i>
+      <span class="text-xs mt-1">增加一本你喜欢的书籍</span>
+    </button>
+
+    <script>
+        // 用于存储后端获取的书籍数据
+        let books = [];
+        let currentUser = null;
+
+        // 获取所有书籍
+        async function fetchBooks() {
+            const res = await fetch('/api/books');
+            books = await res.json();
+            renderBookGrid();
+        }
+
+        // 渲染书籍网格
+        function renderBookGrid() {
+            const bookGrid = document.getElementById('bookGrid');
+            bookGrid.innerHTML = '';
+            books.forEach(book => {
+                const bookCard = document.createElement('div');
+                bookCard.className = 'book-card bg-white rounded-lg shadow p-4 cursor-pointer fade-in relative';
+                bookCard.dataset.id = book.id;
+                bookCard.innerHTML = `
+                    <button class='absolute top-2 right-2 text-gray-300 hover:text-red-500 delete-book-btn' title='删除书籍'><i class='fas fa-trash'></i></button>
+                    <div class="mb-3 flex justify-center">
+                        <a href="${book.detail_url || '#'}" target="_blank">
+                            <img src="${book.cover}" alt="${book.title}封面" class="w-full max-w-[120px] book-cover rounded shadow" onerror="this.src='/static/covers/default.png'; this.onerror=null;">
+                        </a>
+                    </div>
+                    <h3 class="font-bold text-gray-800 mb-1 line-clamp-1">${book.title}</h3>
+                    <p class="text-sm text-gray-600 mb-2">${book.author}</p>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                        ${(book.categories||[]).slice(0, 2).map(category => `
+                            <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">${category}</span>
+                        `).join('')}
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <button class="like-btn flex items-center gap-1 text-gray-500 hover:text-red-500 transition-colors" data-book-id="${book.id}">
+                            <i class="fas fa-heart"></i>
+                            <span class="like-count text-sm">${book.likes || 0}</span>
+                        </button>
+                    </div>
+                `;
+                // 删除按钮事件
+                bookCard.querySelector('.delete-book-btn').onclick = async function(e) {
+                    e.stopPropagation();
+                    if (confirm(`确定要删除《${book.title}》吗？`)) {
+                        const res = await fetch('/api/delete_book', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: book.id })
+                        });
+                        if (res.ok) {
+                            await fetchBooks();
+                        } else {
+                            alert('删除失败');
+                        }
+                    }
+                };
+                
+                // 点赞按钮事件
+                bookCard.querySelector('.like-btn').onclick = async function(e) {
+                    e.stopPropagation();
+                    if (!currentUser) {
+                        alert('请先登录后再点赞！');
+                        return;
+                    }
+                    const bookId = this.dataset.bookId;
+                    const likeCount = this.querySelector('.like-count');
+                    const heartIcon = this.querySelector('.fas.fa-heart');
+                    try {
+                        const res = await fetch('/api/like_book', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: bookId })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            likeCount.textContent = data.likes;
+                            heartIcon.style.transform = 'scale(1.3)';
+                            heartIcon.style.color = '#ef4444';
+                            setTimeout(() => { heartIcon.style.transform = 'scale(1)'; }, 200);
+                        } else {
+                            alert(data.error || '点赞失败');
+                        }
+                    } catch (error) {
+                        console.error('点赞出错:', error);
+                        alert('点赞失败');
+                    }
+                };
+                
+                // ... 选择逻辑 ...
+                bookCard.addEventListener('click', function() {
+                    const bookId = parseInt(this.dataset.id);
+                    const index = selectedBooks.indexOf(bookId);
+                    if (index > -1) {
+                        selectedBooks.splice(index, 1);
+                        this.classList.remove('selected');
+                    } else {
+                        if (selectedBooks.length < 2) {
+                            selectedBooks.push(bookId);
+                            this.classList.add('selected');
+                        }
+                    }
+                    selectionStatus.textContent = `已选择 ${selectedBooks.length}/2 本书`;
+                    if (selectedBooks.length === 2) {
+                        recommendBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        recommendBtn.disabled = false;
+                    } else {
+                        recommendBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        recommendBtn.disabled = true;
+                    }
+                });
+                bookGrid.appendChild(bookCard);
+            });
+        }
+
+        // 随机推荐功能
+        document.getElementById('randomBtn').addEventListener('click', async function() {
+            const res = await fetch('/api/random_book');
+            const randomBook = await res.json();
+            const randomResult = document.getElementById('randomResult');
+            const randomCover = document.getElementById('randomCover');
+            const randomTitle = document.getElementById('randomTitle');
+            const randomAuthor = document.getElementById('randomAuthor');
+            const randomCategories = document.getElementById('randomCategories');
+            const randomDescription = document.getElementById('randomDescription');
+            randomCover.src = randomBook.cover;
+            randomCover.alt = randomBook.title + '封面';
+            randomTitle.textContent = randomBook.title;
+            randomAuthor.textContent = '作者: ' + randomBook.author;
+            randomCategories.innerHTML = '';
+            (randomBook.categories||[]).forEach(category => {
+                const span = document.createElement('span');
+                span.className = 'bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full';
+                span.textContent = category;
+                randomCategories.appendChild(span);
+            });
+            randomDescription.textContent = randomBook.description;
+            
+            // 添加点赞按钮到随机推荐结果
+            const randomLikesContainer = document.createElement('div');
+            randomLikesContainer.className = 'mt-4 flex items-center gap-2';
+            randomLikesContainer.innerHTML = `
+                <button class="random-like-btn flex items-center gap-1 text-gray-500 hover:text-red-500 transition-colors" data-book-id="${randomBook.id}">
+                    <i class="fas fa-heart"></i>
+                    <span class="random-like-count text-sm">${randomBook.likes || 0}</span>
+                </button>
+            `;
+            
+            // 移除旧的点赞按钮（如果存在）
+            const oldLikesContainer = randomResult.querySelector('.mt-4');
+            if (oldLikesContainer) {
+                oldLikesContainer.remove();
+            }
+            
+            randomResult.querySelector('.md\\:w-2\\/3').appendChild(randomLikesContainer);
+            
+            // 随机推荐点赞事件
+            randomLikesContainer.querySelector('.random-like-btn').onclick = async function() {
+                if (!currentUser) {
+                    alert('请先登录后再点赞！');
+                    return;
+                }
+                const bookId = this.dataset.bookId;
+                const likeCount = this.querySelector('.random-like-count');
+                const heartIcon = this.querySelector('.fas.fa-heart');
+                
+                try {
+                    const res = await fetch('/api/like_book', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: bookId })
+                    });
+                    
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        likeCount.textContent = data.likes;
+                        heartIcon.style.transform = 'scale(1.3)';
+                        heartIcon.style.color = '#ef4444';
+                        setTimeout(() => { heartIcon.style.transform = 'scale(1)'; }, 200);
+                    } else {
+                        alert(data.error || '点赞失败');
+                    }
+                } catch (error) {
+                    console.error('点赞出错:', error);
+                    alert('点赞失败');
+                }
+            };
+            
+            randomResult.classList.remove('hidden');
+            randomResult.style.opacity = '0';
+            setTimeout(() => {
+                randomResult.style.opacity = '1';
+            }, 10);
+
+            recordView(randomBook.id);
+        });
+
+        // 选择推荐功能
+        const selectedBooks = [];
+        const selectionStatus = document.getElementById('selectionStatus');
+        const recommendBtn = document.getElementById('recommendBtn');
+        recommendBtn.addEventListener('click', async function() {
+            if (selectedBooks.length !== 2) return;
+            const res = await fetch('/api/recommend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ selected_ids: selectedBooks })
+            });
+            const recommended = await res.json();
+            const recommendedBooks = document.getElementById('recommendedBooks');
+            recommendedBooks.innerHTML = '';
+            recommended.forEach(book => {
+                const bookElement = document.createElement('div');
+                bookElement.className = 'bg-white rounded-lg shadow p-4 fade-in';
+                bookElement.innerHTML = `
+                    <div class="mb-3 flex justify-center">
+                        <img src="${book.cover}" alt="${book.title}封面" class="w-full max-w-[150px] book-cover rounded shadow" onerror="this.src='/static/covers/default.png'; this.onerror=null;">
+                    </div>
+                    <h3 class="font-bold text-gray-800 mb-1">${book.title}</h3>
+                    <p class="text-gray-600 mb-2">${book.author}</p>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        ${(book.categories||[]).map(category => `<span class='bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full'>${category}</span>`).join('')}
+                    </div>
+                    <p class="text-gray-700 text-sm line-clamp-3 mb-3">${book.description}</p>
+                    <div class="flex items-center justify-between">
+                        <button class="recommend-like-btn flex items-center gap-1 text-gray-500 hover:text-red-500 transition-colors" data-book-id="${book.id}">
+                            <i class="fas fa-heart"></i>
+                            <span class="recommend-like-count text-sm">${book.likes || 0}</span>
+                        </button>
+                    </div>
+                `;
+                
+                // 推荐结果点赞事件
+                bookElement.querySelector('.recommend-like-btn').onclick = async function() {
+                    if (!currentUser) {
+                        alert('请先登录后再点赞！');
+                        return;
+                    }
+                    const bookId = this.dataset.bookId;
+                    const likeCount = this.querySelector('.recommend-like-count');
+                    const heartIcon = this.querySelector('.fas.fa-heart');
+                    
+                    try {
+                        const res = await fetch('/api/like_book', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: bookId })
+                        });
+                        
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            likeCount.textContent = data.likes;
+                            heartIcon.style.transform = 'scale(1.3)';
+                            heartIcon.style.color = '#ef4444';
+                            setTimeout(() => { heartIcon.style.transform = 'scale(1)'; }, 200);
+                        } else {
+                            alert(data.error || '点赞失败');
+                        }
+                    } catch (error) {
+                        console.error('点赞出错:', error);
+                        alert('点赞失败');
+                    }
+                };
+                recommendedBooks.appendChild(bookElement);
+            });
+            document.getElementById('recommendResult').classList.remove('hidden');
+        });
+
+        // 增加书籍弹窗逻辑
+        document.getElementById('showAddBook').onclick = function() {
+            document.getElementById('addBookModal').classList.remove('hidden');
+        };
+        document.getElementById('closeAddBook').onclick = function() {
+            document.getElementById('addBookModal').classList.add('hidden');
+        };
+        const addBookForm = document.getElementById('addBookForm');
+        addBookForm.onsubmit = async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            let categories = form.categories.value.trim();
+            if (categories) {
+                categories = categories.split(/[，,|\s]+/).filter(Boolean).join(',');
+            }
+            const data = {
+                title: form.title.value,
+                author: form.author.value,
+                categories: categories,
+                cover: form.cover.value,
+                description: form.description.value
+            };
+            const res = await fetch('/api/add_book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                document.getElementById('addBookModal').classList.add('hidden');
+                await fetchBooks();
+            } else {
+                alert('添加失败');
+            }
+        };
+
+        // 本地图片上传功能
+        document.getElementById('coverFile').onchange = async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/upload_cover', {
+                method: 'POST',
+                body: formData
+            });
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('coverInput').value = data.url;
+                document.getElementById('coverPreview').innerHTML = `<img src='${data.url}' alt='封面预览' class='w-24 h-auto rounded shadow' />`;
+            } else {
+                alert('图片上传失败');
+            }
+        };
+        // 封面链接输入时预览
+        document.getElementById('coverInput').oninput = function(e) {
+            const url = e.target.value;
+            if (url) {
+                document.getElementById('coverPreview').innerHTML = `<img src='${url}' alt='封面预览' class='w-24 h-auto rounded shadow' />`;
+            } else {
+                document.getElementById('coverPreview').innerHTML = '';
+            }
+        };
+
+        // 用户状态管理
+        async function checkUserStatus() {
+            try {
+                const response = await fetch('/api/user');
+                const data = await response.json();
+                
+                if (data.success && data.user) {
+                    currentUser = data.user;
+                    showUserLoggedIn();
+                } else {
+                    showUserLoggedOut();
+                }
+            } catch (error) {
+                console.error('检查用户状态失败:', error);
+                showUserLoggedOut();
+            }
+        }
+
+        // 显示用户已登录状态
+        function showUserLoggedIn() {
+            document.getElementById('userSection').classList.remove('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('mobileUserSection').classList.remove('hidden');
+            document.getElementById('mobileLoginSection').classList.add('hidden');
+            
+            document.getElementById('username').textContent = currentUser.username;
+            document.getElementById('mobileUsername').textContent = currentUser.username;
+            fetchUserProfile();
+        }
+
+        // 显示用户未登录状态
+        function showUserLoggedOut() {
+            document.getElementById('userSection').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('mobileUserSection').classList.add('hidden');
+            document.getElementById('mobileLoginSection').classList.remove('hidden');
+            
+            currentUser = null;
+            fetchUserProfile();
+        }
+
+        // 登出功能
+        async function logout() {
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    showUserLoggedOut();
+                    // 可以选择跳转到登录页面或刷新页面
+                    window.location.reload();
+                } else {
+                    alert('登出失败，请稍后重试');
+                }
+            } catch (error) {
+                console.error('登出失败:', error);
+                alert('登出失败，请稍后重试');
+            }
+        }
+
+        // 绑定登出按钮事件
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.getElementById('mobileLogoutBtn').addEventListener('click', logout);
+
+        // 移动端菜单切换
+        document.getElementById('mobileMenuButton').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 页面加载时拉取书籍和检查用户状态
+        window.onload = function() {
+            fetchBooks();
+            checkUserStatus();
+            fetchUserProfile();
+        };
+
+        // 书籍详情页浏览记录（假设有详情页，或在随机推荐/选择推荐点击时调用）
+        async function recordView(bookId) {
+            if (!currentUser) return;
+            try {
+                await fetch('/api/view_book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: bookId })
+                });
+            } catch (e) { /* 忽略错误 */ }
+        }
+
+        // 为你推荐按钮事件
+        const profileRecommendBtn = document.getElementById('profileRecommendBtn');
+        const profileRecommendResult = document.getElementById('profileRecommendResult');
+        const profileRecommendedBooks = document.getElementById('profileRecommendedBooks');
+        profileRecommendBtn.addEventListener('click', async function() {
+            if (!currentUser) {
+                alert('请先登录后再获取个性化推荐！');
+                return;
+            }
+            profileRecommendBtn.disabled = true;
+            profileRecommendBtn.textContent = '加载中...';
+            try {
+                const res = await fetch('/api/recommend_by_profile');
+                if (!res.ok) throw new Error('请求失败');
+                const books = await res.json();
+                profileRecommendedBooks.innerHTML = '';
+                books.forEach(book => {
+                    const bookElement = document.createElement('div');
+                    bookElement.className = 'bg-white rounded-lg shadow p-4 fade-in';
+                    bookElement.innerHTML = `
+                        <div class="mb-3 flex justify-center">
+                            <img src="${book.cover}" alt="${book.title}封面" class="w-full max-w-[150px] book-cover rounded shadow" onerror="this.src='/static/covers/default.png'; this.onerror=null;">
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">${book.title}</h3>
+                        <p class="text-gray-600 mb-2">${book.author}</p>
+                        <div class="flex flex-wrap gap-1 mb-3">
+                            ${(book.categories||[]).map(category => `<span class='bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full'>${category}</span>`).join('')}
+                        </div>
+                        <p class="text-gray-700 text-sm line-clamp-3 mb-3">${book.description}</p>
+                        <div class="flex items-center justify-between">
+                            <button class="profile-like-btn flex items-center gap-1 text-gray-500 hover:text-red-500 transition-colors" data-book-id="${book.id}">
+                                <i class="fas fa-heart"></i>
+                                <span class="profile-like-count text-sm">${book.likes || 0}</span>
+                            </button>
+                        </div>
+                    `;
+                    // 点赞事件
+                    bookElement.querySelector('.profile-like-btn').onclick = async function() {
+                        if (!currentUser) {
+                            alert('请先登录后再点赞！');
+                            return;
+                        }
+                        const bookId = this.dataset.bookId;
+                        const likeCount = this.querySelector('.profile-like-count');
+                        const heartIcon = this.querySelector('.fas.fa-heart');
+                        try {
+                            const res = await fetch('/api/like_book', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: bookId })
+                            });
+                            const data = await res.json();
+                            if (res.ok && data.success) {
+                                likeCount.textContent = data.likes;
+                                heartIcon.style.transform = 'scale(1.3)';
+                                heartIcon.style.color = '#ef4444';
+                                setTimeout(() => { heartIcon.style.transform = 'scale(1)'; }, 200);
+                            } else {
+                                alert(data.error || '点赞失败');
+                            }
+                        } catch (error) {
+                            alert('点赞失败');
+                        }
+                    };
+                    profileRecommendedBooks.appendChild(bookElement);
+                });
+                profileRecommendResult.classList.remove('hidden');
+            } catch (e) {
+                alert('获取推荐失败，请稍后重试');
+            } finally {
+                profileRecommendBtn.disabled = false;
+                profileRecommendBtn.textContent = '为我推荐';
+            }
+        });
+
+        // 页面加载时拉取用户画像
+        async function fetchUserProfile() {
+            if (!currentUser) {
+                document.getElementById('userProfileSection').classList.add('hidden');
+                return;
+            }
+            try {
+                const res = await fetch('/api/user_profile');
+                const data = await res.json();
+                if (data && data.fav_categories && data.fav_categories.length > 0) {
+                    document.getElementById('userProfileSection').classList.remove('hidden');
+                    document.getElementById('profileUsername').textContent = currentUser.username;
+                    const catDiv = document.getElementById('profileFavCategories');
+                    catDiv.innerHTML = '';
+                    data.fav_categories.forEach(cat => {
+                        const span = document.createElement('span');
+                        span.className = 'bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full';
+                        span.textContent = cat;
+                        catDiv.appendChild(span);
+                    });
+                } else {
+                    document.getElementById('userProfileSection').classList.add('hidden');
+                }
+            } catch (e) {
+                document.getElementById('userProfileSection').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书籍社区 - 登录注册</title>
+    <script src="https://cdn.tailwindcss.com/3.3.3"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .gradient-btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .gradient-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4);
+        }
+        
+        .input-field {
+            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .input-field:focus {
+            border-color: #818cf8;
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+        }
+        
+        .form-container {
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .form-hidden {
+            opacity: 0;
+            transform: translateX(50px);
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        .form-visible {
+            opacity: 1;
+            transform: translateX(0);
+            position: relative;
+            pointer-events: all;
+        }
+        
+        .password-toggle {
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #9ca3af;
+        }
+        
+        .password-toggle:hover {
+            color: #4f46e5;
+        }
+        
+        .strength-meter {
+            height: 4px;
+            background-color: #e5e7eb;
+            border-radius: 2px;
+            margin-top: 4px;
+        }
+        
+        .strength-meter-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-sm py-4">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <i class="fas fa-book-open text-2xl mr-2 gradient-text"></i>
+                <span class="text-xl font-bold gradient-text">书籍社区</span>
+            </div>
+            <div class="hidden md:flex space-x-6">
+                <a href="#" class="text-gray-600 hover:text-indigo-600 transition-colors">首页</a>
+                <a href="#" class="text-gray-600 hover:text-indigo-600 transition-colors">书单</a>
+                <a href="#" class="text-gray-600 hover:text-indigo-600 transition-colors">社区</a>
+                <a href="#" class="text-gray-600 hover:text-indigo-600 transition-colors">关于</a>
+            </div>
+            <div class="md:hidden">
+                <button class="text-gray-600 focus:outline-none">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="flex-grow flex items-center justify-center py-12 px-4">
+        <div class="glass-card w-full max-w-md p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold mb-2">欢迎回来</h1>
+                <p class="text-gray-600">请登录您的账户或注册新账户</p>
+            </div>
+            
+            <!-- 切换按钮 -->
+            <div class="flex mb-6 rounded-lg bg-gray-100 p-1">
+                <button id="loginTab" class="flex-1 py-2 px-4 rounded-lg font-medium transition-colors bg-white shadow-sm text-indigo-600">登录</button>
+                <button id="registerTab" class="flex-1 py-2 px-4 rounded-lg font-medium transition-colors text-gray-600 hover:text-indigo-600">注册</button>
+            </div>
+            
+            <!-- 登录表单 -->
+            <div id="loginForm" class="form-visible form-container">
+                <form id="loginFormElement">
+                    <div class="mb-4 relative">
+                        <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-1">用户名/邮箱</label>
+                        <div class="relative">
+                            <i class="fas fa-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="loginEmail" class="w-full pl-10 pr-3 py-2 rounded-lg input-field" placeholder="请输入用户名或邮箱">
+                        </div>
+                        <div id="loginEmailError" class="error-message"></div>
+                    </div>
+                    
+                    <div class="mb-4 relative">
+                        <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="password" id="loginPassword" class="w-full pl-10 pr-10 py-2 rounded-lg input-field" placeholder="请输入密码">
+                            <i class="fas fa-eye absolute password-toggle" id="toggleLoginPassword"></i>
+                        </div>
+                        <div id="loginPasswordError" class="error-message"></div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="rememberMe" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="rememberMe" class="ml-2 block text-sm text-gray-700">记住我</label>
+                        </div>
+                        <a href="#" class="text-sm text-indigo-600 hover:text-indigo-800">忘记密码?</a>
+                    </div>
+                    
+                    <button type="submit" class="w-full py-2 px-4 rounded-lg text-white font-medium gradient-btn mb-4">
+                        登录
+                    </button>
+                    
+                    <div id="loginMessage" class="text-center text-sm"></div>
+                </form>
+            </div>
+            
+            <!-- 注册表单 -->
+            <div id="registerForm" class="form-hidden form-container">
+                <form id="registerFormElement">
+                    <div class="mb-4 relative">
+                        <label for="registerUsername" class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                        <div class="relative">
+                            <i class="fas fa-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="registerUsername" class="w-full pl-10 pr-3 py-2 rounded-lg input-field" placeholder="请输入用户名">
+                        </div>
+                        <div id="registerUsernameError" class="error-message"></div>
+                    </div>
+                    
+                    <div class="mb-4 relative">
+                        <label for="registerEmail" class="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+                        <div class="relative">
+                            <i class="fas fa-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="email" id="registerEmail" class="w-full pl-10 pr-3 py-2 rounded-lg input-field" placeholder="请输入邮箱">
+                        </div>
+                        <div id="registerEmailError" class="error-message"></div>
+                    </div>
+                    
+                    <div class="mb-4 relative">
+                        <label for="registerPassword" class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="password" id="registerPassword" class="w-full pl-10 pr-10 py-2 rounded-lg input-field" placeholder="请输入密码">
+                            <i class="fas fa-eye absolute password-toggle" id="toggleRegisterPassword"></i>
+                        </div>
+                        <div class="strength-meter">
+                            <div id="passwordStrength" class="strength-meter-fill" style="width: 0%; background-color: #ef4444;"></div>
+                        </div>
+                        <div id="registerPasswordError" class="error-message"></div>
+                    </div>
+                    
+                    <div class="mb-6 relative">
+                        <label for="registerConfirmPassword" class="block text-sm font-medium text-gray-700 mb-1">确认密码</label>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="password" id="registerConfirmPassword" class="w-full pl-10 pr-10 py-2 rounded-lg input-field" placeholder="请再次输入密码">
+                            <i class="fas fa-eye absolute password-toggle" id="toggleRegisterConfirmPassword"></i>
+                        </div>
+                        <div id="registerConfirmPasswordError" class="error-message"></div>
+                    </div>
+                    
+                    <button type="submit" class="w-full py-2 px-4 rounded-lg text-white font-medium gradient-btn mb-4">
+                        注册
+                    </button>
+                    
+                    <div id="registerMessage" class="text-center text-sm"></div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white py-6 border-t">
+        <div class="container mx-auto px-4 text-center text-gray-600 text-sm">
+            <p>© 2024 书籍社区. 保留所有权利.</p>
+            <p class="mt-2">
+                <a href="https://space.coze.cn" class="text-indigo-600 hover:text-indigo-800">created by coze space</a> | 
+                页面内容均由 AI 生成，仅供参考
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 表单切换
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            
+            loginTab.addEventListener('click', function() {
+                loginTab.classList.add('bg-white', 'shadow-sm', 'text-indigo-600');
+                loginTab.classList.remove('text-gray-600');
+                registerTab.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600');
+                registerTab.classList.add('text-gray-600');
+                
+                loginForm.classList.remove('form-hidden');
+                loginForm.classList.add('form-visible');
+                registerForm.classList.remove('form-visible');
+                registerForm.classList.add('form-hidden');
+            });
+            
+            registerTab.addEventListener('click', function() {
+                registerTab.classList.add('bg-white', 'shadow-sm', 'text-indigo-600');
+                registerTab.classList.remove('text-gray-600');
+                loginTab.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600');
+                loginTab.classList.add('text-gray-600');
+                
+                registerForm.classList.remove('form-hidden');
+                registerForm.classList.add('form-visible');
+                loginForm.classList.remove('form-visible');
+                loginForm.classList.add('form-hidden');
+            });
+            
+            // 密码显示/隐藏切换
+            function setupPasswordToggle(inputId, toggleId) {
+                const passwordInput = document.getElementById(inputId);
+                const toggleButton = document.getElementById(toggleId);
+                
+                toggleButton.addEventListener('click', function() {
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        toggleButton.classList.remove('fa-eye');
+                        toggleButton.classList.add('fa-eye-slash');
+                    } else {
+                        passwordInput.type = 'password';
+                        toggleButton.classList.remove('fa-eye-slash');
+                        toggleButton.classList.add('fa-eye');
+                    }
+                });
+            }
+            
+            setupPasswordToggle('loginPassword', 'toggleLoginPassword');
+            setupPasswordToggle('registerPassword', 'toggleRegisterPassword');
+            setupPasswordToggle('registerConfirmPassword', 'toggleRegisterConfirmPassword');
+            
+            // 密码强度检测
+            const registerPassword = document.getElementById('registerPassword');
+            const passwordStrength = document.getElementById('passwordStrength');
+            
+            registerPassword.addEventListener('input', function() {
+                const password = registerPassword.value;
+                let strength = 0;
+                
+                // 长度检查
+                if (password.length >= 8) strength += 1;
+                if (password.length >= 12) strength += 1;
+                
+                // 复杂度检查
+                if (/[A-Z]/.test(password)) strength += 1;
+                if (/[0-9]/.test(password)) strength += 1;
+                if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+                
+                // 更新强度条
+                let width = 0;
+                let color = '#ef4444'; // 红色
+                
+                if (strength >= 4) {
+                    width = 100;
+                    color = '#10b981'; // 绿色
+                } else if (strength >= 2) {
+                    width = 66;
+                    color = '#f59e0b'; // 黄色
+                } else if (password.length > 0) {
+                    width = 33;
+                }
+                
+                passwordStrength.style.width = width + '%';
+                passwordStrength.style.backgroundColor = color;
+            });
+            
+            // 表单验证
+            function showError(element, message) {
+                const errorElement = document.getElementById(element + 'Error');
+                errorElement.textContent = message;
+            }
+            
+            function clearError(element) {
+                const errorElement = document.getElementById(element + 'Error');
+                errorElement.textContent = '';
+            }
+            
+            // 登录表单验证
+            const loginFormElement = document.getElementById('loginFormElement');
+            const loginMessage = document.getElementById('loginMessage');
+            
+            loginFormElement.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value.trim();
+                let isValid = true;
+                
+                // 验证邮箱/用户名
+                if (!email) {
+                    showError('loginEmail', '请输入用户名或邮箱');
+                    isValid = false;
+                } else {
+                    clearError('loginEmail');
+                }
+                
+                // 验证密码
+                if (!password) {
+                    showError('loginPassword', '请输入密码');
+                    isValid = false;
+                } else {
+                    clearError('loginPassword');
+                }
+                
+                if (isValid) {
+                    // 发送登录请求
+                    loginMessage.textContent = '登录中...';
+                    loginMessage.style.color = '#4f46e5';
+                    
+                    fetch('/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            username_or_email: email,
+                            password: password
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loginMessage.textContent = data.message;
+                            loginMessage.style.color = '#10b981';
+                            // 登录成功后跳转到主页
+                            setTimeout(function() {
+                                window.location.href = '/';
+                            }, 1000);
+                        } else {
+                            loginMessage.textContent = data.error;
+                            loginMessage.style.color = '#ef4444';
+                        }
+                    })
+                    .catch(error => {
+                        loginMessage.textContent = '登录失败，请稍后重试';
+                        loginMessage.style.color = '#ef4444';
+                        console.error('Error:', error);
+                    });
+                }
+            });
+            
+            // 注册表单验证
+            const registerFormElement = document.getElementById('registerFormElement');
+            const registerMessage = document.getElementById('registerMessage');
+            
+            registerFormElement.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('registerUsername').value.trim();
+                const email = document.getElementById('registerEmail').value.trim();
+                const password = document.getElementById('registerPassword').value.trim();
+                const confirmPassword = document.getElementById('registerConfirmPassword').value.trim();
+                let isValid = true;
+                
+                // 验证用户名
+                if (!username) {
+                    showError('registerUsername', '请输入用户名');
+                    isValid = false;
+                } else if (username.length < 3) {
+                    showError('registerUsername', '用户名至少3个字符');
+                    isValid = false;
+                } else {
+                    clearError('registerUsername');
+                }
+                
+                // 验证邮箱
+                if (!email) {
+                    showError('registerEmail', '请输入邮箱');
+                    isValid = false;
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    showError('registerEmail', '请输入有效的邮箱地址');
+                    isValid = false;
+                } else {
+                    clearError('registerEmail');
+                }
+                
+                // 验证密码
+                if (!password) {
+                    showError('registerPassword', '请输入密码');
+                    isValid = false;
+                } else if (password.length < 8) {
+                    showError('registerPassword', '密码至少8个字符');
+                    isValid = false;
+                } else {
+                    clearError('registerPassword');
+                }
+                
+                // 验证确认密码
+                if (!confirmPassword) {
+                    showError('registerConfirmPassword', '请再次输入密码');
+                    isValid = false;
+                } else if (password !== confirmPassword) {
+                    showError('registerConfirmPassword', '两次输入的密码不一致');
+                    isValid = false;
+                } else {
+                    clearError('registerConfirmPassword');
+                }
+                
+                if (isValid) {
+                    // 发送注册请求
+                    registerMessage.textContent = '注册中...';
+                    registerMessage.style.color = '#4f46e5';
+                    
+                    fetch('/api/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            username: username,
+                            email: email,
+                            password: password
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            registerMessage.textContent = data.message;
+                            registerMessage.style.color = '#10b981';
+                            
+                            // 自动切换到登录表单
+                            setTimeout(function() {
+                                loginTab.click();
+                            }, 1000);
+                        } else {
+                            registerMessage.textContent = data.error;
+                            registerMessage.style.color = '#ef4444';
+                        }
+                    })
+                    .catch(error => {
+                        registerMessage.textContent = '注册失败，请稍后重试';
+                        registerMessage.style.color = '#ef4444';
+                        console.error('Error:', error);
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
